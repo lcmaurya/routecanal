@@ -64,3 +64,33 @@
   </script>
 </body>
 </html>
+<body>
+  <h1>Test Payment</h1>
+  <button onclick="pay()">Pay 0.001 π (Test)</button>
+
+  <!-- नया Cancel Button -->
+  <button onclick="cancelPending()">Cancel Pending</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    function pay() {
+      // यहां तुम्हारा Pi.createPayment वाला code रहेगा
+    }
+
+    // Cancel Helper
+    const BACKEND = "https://rc-backend.onrender.com"; // अपना backend URL डालना
+    async function cancelPending() {
+      const paymentId = prompt("Enter pending paymentId:");
+      if(!paymentId) return;
+      const res = await fetch(`${BACKEND}/api/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId })
+      });
+      const data = await res.json();
+      console.log("Cancel result:", data);
+      alert("Cancel tried. Check console/logs.");
+    }
+  </script>
+</body>
