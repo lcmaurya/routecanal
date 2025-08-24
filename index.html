@@ -1,1 +1,66 @@
 
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RouteCanal Test Payment</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <style>
+    body{background:#0b0f15;color:#e6f0ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;padding:24px}
+    .card{max-width:560px;margin:0 auto;background:#121826;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{font-size:42px;margin:0 0 6px}
+    p{opacity:.9;line-height:1.5}
+    button{background:#0ea5e9;border:0;color:#001422;padding:16px 22px;border-radius:14px;font-weight:700;font-size:22px}
+    pre{background:#0a1220;border-radius:14px;padding:16px;white-space:pre-wrap}
+    .dim{opacity:.7}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Test Payment</h1>
+    <p>Pi Testnet demo. Pi Browser/PiNet me khol kar <b>0.001 π</b> pay test karo.</p>
+    <p id="status" class="dim">Initializing…</p>
+    <button id="payBtn">Pay 0.001 π (Test)</button>
+    <h3>LOG</h3>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    const log = (...a)=>{document.getElementById('log').textContent += a.join(' ')+"\n";}
+    const statusEl = document.getElementById('status');
+    const btn = document.getElementById('payBtn');
+
+    (async function init(){
+      try{
+        if(!window.Pi){ statusEl.textContent="Pi SDK nahi—Pi Browser me PiNet URL se kholen"; return; }
+        Pi.init({ version:"2.0" });
+        const auth = await Pi.authenticate(['payments'], (p)=>log("incomplete:",p.identifier));
+        log("auth ok for:", auth.user.username || auth.user.uid);
+        statusEl.textContent="Ready (payments scope granted)";
+      }catch(e){ statusEl.textContent="Auth error"; log("auth error", e?.message||e); }
+    })();
+
+    btn.onclick = async ()=>{
+      log("BTN CLICKED");
+      if(!window.Pi){ log("Pi SDK unavailable"); return; }
+      try{
+        await Pi.createPayment({ amount:0.001, memo:"RouteCanal test", metadata:{orderId:Date.now()} },{
+          onReadyForServerApproval: async (paymentId)=>{
+            log("approve ->", paymentId);
+            const r = await fetch('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paymentId})});
+            log("approve status", r.status);
+          },
+          onReadyForServerCompletion: async (paymentId, txId)=>{
+            log("complete ->", paymentId, txId);
+            const r = await fetch('/api/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paymentId,txId})});
+            log("complete status", r.status);
+          },
+          onCancel: ()=>log("user cancelled"),
+          onError: (e)=>log("sdk error", e?.message||e)
+        });
+      }catch(e){ log("createPayment error", e?.message||e); }
+    };
+  </script>
+</body>
+</html>
