@@ -1,53 +1,45 @@
-// server.js
 import express from "express";
+import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
+app.use(cors({ origin: ["https://routecanal.onrender.com"] })); // static site origin
 
 const PI_API = "https://api.minepi.com/v2";
-const SERVER_KEY = process.env.PI_API_KEY; // Render env var
+const KEY = process.env.PI_API_KEY; // Render env var (Server API Key sk_...)
 
-// Approve
+const headers = () => ({ "Authorization": `Key ${KEY}`, "Content-Type": "application/json" });
+
+app.get("/", (_req, res) => res.send("RouteCanal backend OK"));
+
 app.post("/api/approve", async (req, res) => {
   try {
     const { paymentId } = req.body;
-    const r = await fetch(`${PI_API}/payments/${paymentId}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Key ${SERVER_KEY}` }
-    });
+    const r = await fetch(`${PI_API}/payments/${paymentId}/approve`, { method: "POST", headers: headers() });
     const data = await r.json();
-    res.json(data);
+    res.status(r.status).json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Complete
 app.post("/api/complete", async (req, res) => {
   try {
     const { paymentId, txid } = req.body;
     const r = await fetch(`${PI_API}/payments/${paymentId}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Key ${SERVER_KEY}` },
-      body: JSON.stringify({ txid })
+      method: "POST", headers: headers(), body: JSON.stringify({ txid })
     });
     const data = await r.json();
-    res.json(data);
+    res.status(r.status).json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Cancel  ✅ यही अभी चाहिए
 app.post("/api/cancel", async (req, res) => {
   try {
     const { paymentId } = req.body;
-    const r = await fetch(`${PI_API}/payments/${paymentId}/cancel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Key ${SERVER_KEY}` }
-    });
+    const r = await fetch(`${PI_API}/payments/${paymentId}/cancel`, { method: "POST", headers: headers() });
     const data = await r.json();
-    res.json(data);
+    res.status(r.status).json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get("/", (_, res) => res.send("RC backend OK"));
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log("Server on", port));
+app.listen(process.env.PORT || 3000);
